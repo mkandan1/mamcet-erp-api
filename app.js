@@ -8,6 +8,7 @@ import { employeeRouter } from './routers/employee-router.js';
 import { checkAuthorization } from './middlewares/auth-middleware.js';
 import { decryptMiddleware } from './middlewares/decrypt-middleware.js';
 import { connect } from './config/db.js';
+import { courseRouter } from './routers/course-router.js';
 
 const PORT = 3030;
 const app = express();
@@ -30,6 +31,7 @@ app.use(decryptMiddleware);
 
 app.use('/api/auth', authRouter);
 app.use('/api/employee', employeeRouter);
+app.use('/api/course', courseRouter);
 
 app.use(error);
 

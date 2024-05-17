@@ -1,6 +1,7 @@
 import { Employee } from "../models/Employee.js";
 import bcrypt from 'bcryptjs';
 import { generateToken } from "../services/auth/token.js";
+import { ObjectId } from "mongodb";
 
 const login = async (req, res, next) => {
   try {
@@ -42,4 +43,18 @@ const login = async (req, res, next) => {
   }
 };
 
-export { login };
+const onAuthState = async function (req, res, next) {
+  try {
+      const { uid } = req.user;
+      const user = await Employee.findOne({ _id: new ObjectId(uid) }).select('-password');
+      if (!user) {
+          return res.status(401).json({ success: false, message: "User does not exist in our record" })
+      }
+      return res.status(200).json({ success: true, message: "User state has verified", user })
+  }
+  catch (err) {
+      next(err)
+  }
+}
+
+export { login, onAuthState };
