@@ -24,6 +24,10 @@ const courseSchema = new mongoose.Schema({
     regulation: {
         type: String,
         require: true
+    },
+    department: {
+        type: String,
+        require: true
     }
 })
 
