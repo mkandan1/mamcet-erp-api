@@ -1,30 +1,30 @@
 import mongoose from "mongoose";
 
-const courseSchema = new mongoose.Schema({
-    institution: {
+const subjectSchema = new mongoose.Schema({
+    sub_name: {
         type: String,
         require: true
     },
-    program: {
+    sub_code: {
         type: String,
         require: true
     },
-    duration: {
+    sub_credits: {
+        type: Number,
+        require: true
+    },
+    sub_type: {
         type: String,
         require: true
     },
-    teaching_mode: {
-        type: String,
+    sub_mandatory: {
+        type: Boolean,
         require: true
     },
-    name: {
-        type: String,
-        require: true
-    },
-    regulation: {
+    sub_regulation:{
         type: String,
         require: true
     }
 })
 
-export const Course = mongoose.model('course', courseSchema)
+export const Subject = mongoose.model('subject', subjectSchema)

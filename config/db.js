@@ -16,7 +16,7 @@ async function connect() {
 
     let client = new MongoClient(process.env.MONGODB_URI);
     client.connect();
-    db = client.db('mymamcet')
+    db = client.db('mamcet')
   }
 
 export { connect, db }

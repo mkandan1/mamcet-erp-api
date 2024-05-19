@@ -63,6 +63,25 @@ const createCourse = async (req, res, next) => {
   }
 };
 
+const deleteCourse = async (req, res, next) => {
+  try {
+    const courseId = getID(req.path);
+    const existCourse = await Course.findOne({ _id: new ObjectId(courseId) });
+    if (!existCourse) {
+      return res.status(404).json({
+        success: false,
+        message: "Course does not exist!",
+      });
+    }
+    await Course.deleteOne({_id: new ObjectId(courseId)});
+    res
+      .status(200)
+      .json({ success: true, message: "Course deleted successfully!" });
+  } catch (err) {
+    next(err);
+  }
+};
+
 const editCourseDetails = async (req, res, next) => {
   try {
     const courseData= req.body
@@ -91,4 +110,4 @@ const editCourseDetails = async (req, res, next) => {
   }
 };
 
-export { createCourse, getCourses, getCourseDetails, editCourseDetails };
+export { createCourse, getCourses, getCourseDetails, deleteCourse, editCourseDetails };
