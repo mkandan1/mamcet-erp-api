@@ -12,6 +12,7 @@ import { courseRouter } from './routers/course-router.js';
 import { subjectRouter } from './routers/subject-router.js';
 import { queryRoute } from './routers/query-router.js';
 import { batchRouter } from './routers/batch-router.js';
+import { semesterRouter } from './routers/semester-router.js';
 
 const PORT = 3030;
 const app = express();
@@ -37,6 +38,7 @@ app.use('/api/employee', employeeRouter);
 app.use('/api/course', courseRouter);
 app.use('/api/subject', subjectRouter);
 app.use('/api/batch', batchRouter);
+app.use('/api/semester', semesterRouter);
 app.use('/api/queries', queryRoute);
 
 app.use(error);

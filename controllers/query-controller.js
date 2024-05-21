@@ -31,36 +31,50 @@ const getQueries = async (req, res) => {
 
 const getDocuments = async (req, res) => {
     try {
-        const queries = req.query;
-        const documents = {};
+        const { collection, values, responseFormat } = req.query;
+        
+        // Parsing the values into a query object
+        const fields = values.split(',').reduce((acc, value) => {
+            const [key, val] = value.split('=');
+            console.log(key, val)
+            acc[key] = val;
+            return acc;
+        }, {});
+    
+        
+        // Constructing the projection object
+        const projection = responseFormat.split(',').reduce((acc, field) => {
+            acc[field] = 1;
+            return acc;
+        }, {});
 
-        const { collection, values, responseFormat } = queries;
 
-        let fields = {}; //program: Undergaduate
-        const valuesArray = values.split(',')
-        valuesArray.map((value) => {
-            const key = value.split("=")[0]
-            const fieldValue = value.split("=")[1]
-            fields = { ...fields, [key]: fieldValue }
-        })
-        const projection = {};
-        responseFormat.split(',').forEach(field => {
-            projection[field] = 1;
-        });
-        const collectionResult = await db.collection(collection).find(fields).project({ ...projection }).toArray();
-        documents[collection] = collectionResult;
-        let options = {}
-        Object.keys(projection).map((key)=>{
-            if(key !== '_id'){
-                options[key] = (documents[collection].map(doc => doc[key]))
-            }
-        })
+        // Fetching documents from the database
+        const collectionResult = await db.collection(collection).find(fields).project(projection).toArray();
+        
+        // Preparing the options object
+        const options = {};
+        if (collectionResult.length > 0) {
+            Object.keys(projection).forEach(key => {
+                if (key !== '_id') {
+                    options[key] = collectionResult.map(doc => doc[key]);
+                }
+            });
+        } else {
+            Object.keys(projection).forEach(key => {
+                if (key !== '_id') {
+                    options[key] = [`No ${collection} found`];
+                }
+            });
+        }
 
-        res.status(200).json({ success: true, message: "Documents fetched successfully", documents, options });
+        // Responding with the fetched documents and options
+        res.status(200).json({ success: true, message: "Documents fetched successfully", documents: { [collection]: collectionResult }, options });
     } catch (error) {
         console.error("Error while fetching documents:", error);
         res.status(500).json({ success: false, message: "Internal Server Error" });
     }
 };
+
 
 export { getQueries, getDocuments }

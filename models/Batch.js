@@ -9,6 +9,11 @@ const batch = new mongoose.Schema({
     type: String,
     require: true,
   },
+  semester: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'semesters',
+    default: null,
+  }],
   course_name: {
     type: String,
     require: true,
