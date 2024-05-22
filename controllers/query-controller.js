@@ -36,7 +36,6 @@ const getDocuments = async (req, res) => {
         // Parsing the values into a query object
         const fields = values.split(',').reduce((acc, value) => {
             const [key, val] = value.split('=');
-            console.log(key, val)
             acc[key] = val;
             return acc;
         }, {});

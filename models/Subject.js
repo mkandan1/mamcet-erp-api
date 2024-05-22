@@ -5,6 +5,7 @@ const subjectSchema = new mongoose.Schema({
         type: String,
         require: true
     },
+    sub_short_name: String,
     sub_code: {
         type: String,
         require: true
@@ -27,4 +28,4 @@ const subjectSchema = new mongoose.Schema({
     }
 })
 
-export const Subject = mongoose.model('subject', subjectSchema)
+export const Subject = mongoose.model('subjects', subjectSchema)

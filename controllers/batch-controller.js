@@ -3,6 +3,9 @@ import { Student } from "../models/Student.js";
 import { ObjectId } from "mongodb";
 import { Course } from "../models/Course.js";
 import { getID } from "../services/getID.js";
+import { Exam } from "../models/Exam.js";
+import { Semester } from "../models/Semester.js";
+import { Score } from "../models/Score.js";
 
 const getAllBatches = async (req, res) => {
   try {
@@ -69,22 +72,34 @@ const getBatchDetails = async (req, res, next) => {
 const deleteBatch = async (req, res, next) => {
   try {
     const batchId = getID(req.path);
-    const existBatch = await Batch.findOne({ _id: new ObjectId(batchId) }).populate('students');
+    const existBatch = await Batch.findOne({ _id: new ObjectId(batchId) }).populate('students').populate('semesters').populate('exams');
     if (!existBatch) {
       return res.status(404).json({
         success: false,
         message: "Batch does not exist!",
       });
     }
-    // TODO: Delete students first then delete batch
-    // DO: Get all students and delete
-    await Student.deleteMany({ _id: { $in: existBatch.students.map(student => student._id) } });
 
-    // Delete the batch
-    await Batch.deleteOne({ _id: existBatch._id });
-    res
-      .status(200)
-      .json({ success: true, message: "Batch deleted successfully!"});
+    const studentIds = existBatch.students.map(student => student._id);
+    const semesterIds = existBatch.semesters.map(semester => semester._id);
+    const examIds = existBatch.exams.map(exam => exam._id);
+
+    await Student.deleteMany({ _id: { $in: studentIds } });
+
+    for (const examId of examIds) {
+      const exam = await Exam.findOne({ _id: examId });
+      if (exam) {
+        const scoreIds = exam.scores.map(score => score._id);
+        await Score.deleteMany({ _id: { $in: scoreIds } });
+        await Exam.findOneAndDelete({ _id: examId }); // Delete the exam
+      }
+    }
+
+    await Semester.deleteMany({ _id: { $in: semesterIds } });
+
+    await Batch.findOneAndDelete({_id: new ObjectId(existBatch._id)});
+
+    res.status(200).json({ success: true, message: "Batch and associated data deleted successfully!" });
   } catch (err) {
     next(err);
   }

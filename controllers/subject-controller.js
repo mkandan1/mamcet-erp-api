@@ -68,7 +68,7 @@ const getSubjectDetails = async (req, res, next) => {
 const deleteSubject = async (req, res, next) => {
   try {
     const subjectId = getID(req.path);
-    const existSubject = await Course.findOne({ _id: new ObjectId(subjectId) });
+    const existSubject = await Subject.findOne({ _id: new ObjectId(subjectId) });
     if (!existSubject) {
       return res.status(404).json({
         success: false,
