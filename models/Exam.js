@@ -10,6 +10,8 @@ const examSchema = new mongoose.Schema({
     batch_name: String,
     semester_name: String,
     exam_name: String,
+    start_date: String,
+    end_date: String,
     scores: [{type: mongoose.Schema.Types.ObjectId, ref: "scores"}]
 });
 

@@ -16,8 +16,8 @@ const updateScore = async (req, res, next) => {
         let changesMade = false;
 
         for (const scoreData of scores) {
-            const { registerNumber, sub_code, examType, score, name, stud_id, sub_id } = scoreData;
-            const numericScore = Number(score); // Convert the score to a number
+            const { registerNumber, sub_code, examType, passingYear, score, name, stud_id, sub_id } = scoreData;
+            const numericScore = Number(score);
             let scoreUpdated = false;
 
             for (let i = 0; i < existExam.scores.length; i++) {
@@ -31,6 +31,13 @@ const updateScore = async (req, res, next) => {
                 ) {
                     if (scoreDoc.score !== numericScore) {
                         scoreDoc.score = numericScore;
+                        await scoreDoc.save();
+                        scoreUpdated = true;
+                        changesMade = true;
+                    }
+                    else if(examType == 'University' && (scoreDoc.score !== numericScore || scoreDoc.passingYear !== passingYear)){
+                        scoreDoc.score = numericScore;
+                        scoreDoc.passingYear = passingYear
                         await scoreDoc.save();
                         scoreUpdated = true;
                         changesMade = true;
@@ -54,6 +61,7 @@ const updateScore = async (req, res, next) => {
                         stud_id: new ObjectId(stud_id),
                         sub_id: new ObjectId(sub_id),
                         name: name,
+                        passingYear: passingYear,
                         registerNumber: registerNumber,
                         sub_code: sub_code,
                         score: numericScore
