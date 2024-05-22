@@ -60,16 +60,16 @@ const student = new mongoose.Schema({
     type: Number,
     default: 0.00
 },
-  current_arrears: {
+  current_arrears: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: "subjects",
-    default: null,
-  },
-  history_of_arrears: {
+    default: [],
+  }],
+  history_of_arrears: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: "subjects",
-    default: null,
-  },
+    default: [],
+  }],
   semesterStats: [
     {
       semester: {
@@ -88,7 +88,7 @@ const student = new mongoose.Schema({
         {
           type: mongoose.Schema.Types.ObjectId,
           ref: "subjects",
-          default: null,
+          default: [],
         },
       ],
     },
