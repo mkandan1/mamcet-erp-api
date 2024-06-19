@@ -1,21 +1,21 @@
 import mongoose from "mongoose";
 
-const student = new mongoose.Schema({
+const studentSchema = new mongoose.Schema({
   registerNumber: {
     type: Number,
-    require: true,
+    required: true,
   },
   name: {
     type: String,
-    require: true,
+    required: true,
   },
   dob: {
     type: String,
-    require: true,
+    required: true,
   },
   email: {
     type: String,
-    require: true,
+    required: true,
     trim: true,
     lowercase: true,
   },
@@ -26,40 +26,40 @@ const student = new mongoose.Schema({
   },
   phone: {
     type: String,
-    require: true,
+    required: true,
   },
   fathersName: {
     type: String,
-    require: true,
+    required: true,
   },
   fathersPhone: {
     type: String,
-    require: true,
+    required: true,
   },
   mothersName: {
     type: String,
-    require: true,
+    required: true,
   },
   mothersPhone: {
     type: String,
-    require: true,
+    required: true,
   },
   _10thMark: {
     type: Number,
-    require: true,
+    required: true,
   },
   _12thMark: {
     type: Number,
-    require: true,
+    required: true,
   },
   counsellingApplicationNumber: {
     type: String,
-    require: true,
+    required: true,
   },
   cgpa: {
     type: Number,
-    default: 0.00
-},
+    default: 0.00,
+  },
   current_arrears: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: "subjects",
@@ -93,21 +93,10 @@ const student = new mongoose.Schema({
       ],
     },
   ],
-  historyOfArrears: [
-    {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "subjects",
-      default: null,
-    },
-  ],
-  cgpa: {
-    type: Number,
-    default: 0,
-  },
   address: {
     type: String,
-    require: true,
+    required: true,
   },
 });
 
-export const Student = mongoose.model("students", student);
+export const Student = mongoose.model("students", studentSchema);

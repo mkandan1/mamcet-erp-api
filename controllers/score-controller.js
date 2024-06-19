@@ -1,11 +1,12 @@
 import { ObjectId } from "mongodb";
 import { Exam } from "../models/Exam.js";
-import { Score } from "../models/Score.js"; // Assuming the Score model is in the models directory
+import { Score } from "../models/Score.js";
+import { Student } from "../models/Student.js";
 
 const updateScore = async (req, res, next) => {
     try {
         const examData = req.body;
-        const { _id, scores } = examData;
+        const { _id, scores, exam_name } = examData;
 
         const existExam = await Exam.findOne({ _id: new ObjectId(_id) }).populate('scores');
 
@@ -13,77 +14,102 @@ const updateScore = async (req, res, next) => {
             return res.status(404).json({ success: false, message: "Exam not found" });
         }
 
-        let changesMade = false;
+        const { stud_id, examType, sub_id, score, passingYear } = scores;
 
-        for (const scoreData of scores) {
-            const { registerNumber, sub_code, examType, passingYear, score, name, stud_id, sub_id } = scoreData;
-            const numericScore = Number(score);
-            let scoreUpdated = false;
+        let existingScore = await Score.findOne({
+            stud_id: new ObjectId(stud_id),
+            examType,
+            sub_id: new ObjectId(sub_id)
+        });
 
-            for (let i = 0; i < existExam.scores.length; i++) {
-                const scoreId = existExam.scores[i];
-                const scoreDoc = await Score.findOne({ _id: scoreId });
-
-                if (
-                    scoreDoc.registerNumber === registerNumber &&
-                    scoreDoc.sub_code === sub_code &&
-                    scoreDoc.examType === examType
-                ) {
-                    if (scoreDoc.score !== numericScore) {
-                        scoreDoc.score = numericScore;
-                        await scoreDoc.save();
-                        scoreUpdated = true;
-                        changesMade = true;
-                    }
-                    else if(examType == 'University' && (scoreDoc.score !== numericScore || scoreDoc.passingYear !== passingYear)){
-                        scoreDoc.score = numericScore;
-                        scoreDoc.passingYear = passingYear
-                        await scoreDoc.save();
-                        scoreUpdated = true;
-                        changesMade = true;
-                    }
-                    break;
-                }
+        if (existingScore) {
+            existingScore.score = score;
+            if (passingYear && existingScore.passingYear !== passingYear) {
+                existingScore.passingYear = passingYear;
             }
-
-            if (!scoreUpdated) {
-                // Check if the exact same score already exists
-                const existingScore = await Score.findOne({
-                    registerNumber,
-                    sub_code,
-                    examType,
-                    score: numericScore
-                });
-
-                if (!existingScore) {
-                    const newScore = new Score({
-                        examType: examType,
-                        stud_id: new ObjectId(stud_id),
-                        sub_id: new ObjectId(sub_id),
-                        name: name,
-                        passingYear: passingYear,
-                        registerNumber: registerNumber,
-                        sub_code: sub_code,
-                        score: numericScore
-                    });
-
-                    const savedScore = await newScore.save();
-                    existExam.scores.push(savedScore._id);
-                    changesMade = true;
-                }
-            }
-        }
-
-        if (changesMade) {
-            await existExam.save();
-            return res.status(200).json({ success: true, message: "Scores updated successfully", exam: existExam });
+            await existingScore.save();
         } else {
-            return res.status(200).json({ success: false, message: "Please enter new or update score", exam: existExam });
+            const newScore = new Score({
+                ...scores,
+                stud_id: new ObjectId(stud_id),
+                sub_id: new ObjectId(sub_id)
+            });
+            await newScore.save();
+            existExam.scores.push(newScore._id);
+            await existExam.save();
         }
 
+        if (examType === 'university') {
+            const student = await Student.findById(stud_id).populate('semesterStats.semester');
+
+            if (!student) {
+                return res.status(404).json({ success: false, message: "Student not found" });
+            }
+
+            let semesterStat = student.semesterStats.find(stat => stat.semester._id.equals(existExam.semester));
+
+            if (semesterStat) {
+                const currentSubjectIndex = semesterStat.subjects.findIndex(subject => subject.sub_id.equals(sub_id));
+                
+                if (currentSubjectIndex >= 0) {
+                    semesterStat.subjects[currentSubjectIndex].score = score;
+                    semesterStat.subjects[currentSubjectIndex].passingYear = passingYear;
+                } else {
+                    semesterStat.subjects.push({ sub_id, score, passingYear });
+                }
+
+                // Update GPA for the semester
+                semesterStat.gpa = calculateGPA(semesterStat.subjects.map(subject => subject.score));
+
+                // Update current arrears
+                if (score < 50) {
+                    if (!semesterStat.arrears.includes(sub_id)) {
+                        semesterStat.arrears.push(sub_id);
+                    }
+                } else {
+                    semesterStat.arrears = semesterStat.arrears.filter(arrear => !arrear.equals(sub_id));
+                }
+
+                // Update CGPA
+                student.cgpa = calculateCGPA(student.semesterStats);
+            } else {
+                semesterStat = {
+                    semester: existExam.semester,
+                    gpa: score < 50 ? 0 : calculateGPA([score]),
+                    arrears: score < 50 ? [sub_id] : [],
+                    subjects: [{ sub_id, score, passingYear }]
+                };
+                student.semesterStats.push(semesterStat);
+                student.cgpa = calculateCGPA(student.semesterStats);
+            }
+
+            // Update history of arrears
+            if (score < 50) {
+                if (!student.history_of_arrears.includes(sub_id)) {
+                    student.history_of_arrears.push(sub_id);
+                }
+            } else {
+                student.history_of_arrears = student.history_of_arrears.filter(arrear => !arrear.equals(sub_id));
+            }
+
+            await student.save();
+        }
+
+        return res.status(200).json({ success: true, message: "Scores updated successfully" });
     } catch (err) {
-        next(err);
+        console.error(err);
+        return res.status(500).json({ success: false, message: "An error occurred while updating scores" });
     }
+};
+
+const calculateGPA = (scores) => {
+    if (scores.length === 0) return 0;
+    return scores.reduce((acc, score) => acc + score, 0) / scores.length;
+};
+
+const calculateCGPA = (semesterStats) => {
+    const totalGPA = semesterStats.reduce((acc, stat) => acc + stat.gpa, 0);
+    return totalGPA / semesterStats.length;
 };
 
 export { updateScore };
