@@ -12,7 +12,8 @@ const examSchema = new mongoose.Schema({
     exam_name: String,
     start_date: String,
     end_date: String,
-    scores: [{type: mongoose.Schema.Types.ObjectId, ref: "scores"}]
+    semester: { type: mongoose.Schema.Types.ObjectId, ref: 'semesters' }, // Ensure this line is present
+    scores: [{ type: mongoose.Schema.Types.ObjectId, ref: "scores" }]
 });
 
 export const Exam = mongoose.model("exams", examSchema);

@@ -70,28 +70,11 @@ const studentSchema = new mongoose.Schema({
     ref: "subjects",
     default: [],
   }],
-  semesterStats: [
-    {
-      semester: {
+  semesterStats: [{
         type: mongoose.Schema.Types.ObjectId,
-        ref: "semesters",
-      },
-      cgpa: {
-        type: Number,
-        default: 0.00,
-      },
-      gpa: {
-        type: Number,
-        default: 0.00,
-      },
-      arrears: [
-        {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: "subjects",
-          default: [],
-        },
-      ],
-    },
+        ref: "semesterStats",
+        default: []
+      }
   ],
   address: {
     type: String,

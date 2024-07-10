@@ -9,9 +9,33 @@ const getExamData = async (req, res, next) => {
     try {
         const { institution, program, department, course_name, regulation, batch_name, academic_year, semester_name, exam_name } = req.body;
         const existBatch = await Batch.findOne({ institution, program, department, course_name, regulation, batch_name })
-            .populate({ path: 'semesters', match: { semester_name }, select: 'institution program academic_year regulation deparment course_name batch_name semester_name subjects', populate: { path: 'subjects', select: 'sub_name sub_code sub_short_name sub_type sub_credits' } })
-            .populate({ path: 'students', select: "registerNumber name cgpa history_of_arrears semesterStats current_arrears semester" })
-            .populate({ path: 'exams', match: { exam_name }, select: "exam_name institution program academic_year regulation deparment course_name batch_name semester_name start_date end_date scores", populate: { path: 'scores', select: "registerNumber name examType stud_id sub_id sub_code passingYear score" } });
+            .populate({
+                path: 'semesters',
+                match: { semester_name },
+                select: 'institution program academic_year regulation department course_name batch_name semester_name subjects',
+                populate: {
+                    path: 'subjects',
+                    select: 'sub_name sub_code sub_short_name sub_type sub_credits'
+                }
+            })
+            .populate({
+                path: 'students',
+                select: "registerNumber name cgpa history_of_arrears semesterStats current_arrears",
+                populate: {
+                    path: 'semesterStats.semester',
+                    select: 'semester_name academic_year' // Ensure the fields you want are specified here
+                }
+            })
+            .populate({
+                path: 'exams',
+                match: { exam_name },
+                select: "exam_name institution program academic_year regulation department course_name batch_name semester_name start_date end_date scores",
+                populate: {
+                    path: 'scores',
+                    select: "registerNumber name examType stud_id sub_id sub_code passingYear score"
+                }
+            });
+
         if (!existBatch) {
             return res.status(404).json({ success: false, message: "Batch does not exist!" });
         }
@@ -22,12 +46,12 @@ const getExamData = async (req, res, next) => {
     }
 }
 
-const getAllSchedules = async(req, res, next) => {
-    try{
+const getAllSchedules = async (req, res, next) => {
+    try {
         const exams = await Exam.find({});
-        res.status(200).json({success: true, message: "Fetch operation successfull", exams})
+        res.status(200).json({ success: true, message: "Fetch operation successfull", exams })
     }
-    catch(err){
+    catch (err) {
         next(err)
     }
 }
@@ -42,7 +66,7 @@ const updateExamSchedule = async (req, res, next) => {
         }
 
         const updatedData = { institution, program, department, course_name, regulation, batch_name, academic_year, semester_name, exam_name, start_date, end_date };
-        
+
         const result = await Exam.updateOne({ _id: new ObjectId(_id) }, { $set: updatedData });
 
         return res.status(200).json({ success: true, message: 'Exam schedule successfully updated.', data: result });
@@ -55,7 +79,7 @@ const updateExamSchedule = async (req, res, next) => {
 const scheduleExam = async (req, res, next) => {
     try {
         const { institution, program, department, course_name, regulation, batch_name, academic_year, semester_name, exam_name } = req.body;
-        
+
         const existSchedule = await Exam.findOne({ program, department, batch_name, semester_name, exam_name });
         if (existSchedule) {
             return res.status(409).json({ success: false, message: 'An exam schedule with the same parameters already exists.' });
@@ -77,31 +101,31 @@ const scheduleExam = async (req, res, next) => {
     }
 }
 
-const getExamDetails = async(req, res, next) => {
+const getExamDetails = async (req, res, next) => {
     try {
         const examId = getID(req.path);
         const exam = await Exam.find({
-          _id: new ObjectId(examId),
+            _id: new ObjectId(examId),
         });
-    
-        if(!exam){
-          return res
-                  .status(404)
-                  .json({
+
+        if (!exam) {
+            return res
+                .status(404)
+                .json({
                     success: false,
                     message: "Exam not found in our record"
-                  })
+                })
         }
         res
-          .status(200)
-          .json({
-            success: true,
-            message: "Exam detail fetched successfully",
-            exam
-          });
-      } catch (err) {
+            .status(200)
+            .json({
+                success: true,
+                message: "Exam detail fetched successfully",
+                exam
+            });
+    } catch (err) {
         next(err);
-      }
+    }
 }
 
 
