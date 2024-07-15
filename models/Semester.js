@@ -9,6 +9,7 @@ const semesterSchema = new mongoose.Schema({
     course_name: String,
     batch_name: String,
     semester_name: String,
+    total_credits: Number,
     subjects: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: "subjects",

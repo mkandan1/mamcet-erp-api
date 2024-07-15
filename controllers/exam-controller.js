@@ -21,10 +21,6 @@ const getExamData = async (req, res, next) => {
             .populate({
                 path: 'students',
                 select: "registerNumber name cgpa history_of_arrears semesterStats current_arrears",
-                populate: {
-                    path: 'semesterStats.semester',
-                    select: 'semester_name academic_year' // Ensure the fields you want are specified here
-                }
             })
             .populate({
                 path: 'exams',

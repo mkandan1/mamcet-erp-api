@@ -2,11 +2,110 @@ import { ObjectId } from "mongodb";
 import { Exam } from "../models/Exam.js";
 import { Score } from "../models/Score.js";
 import { Student } from "../models/Student.js";
-import { SemesterStats } from "../models/SemesterStats.js"; // Assuming you have a SemesterStats model
+import { SemesterStats } from "../models/SemesterStats.js";
+import { Semester } from "../models/Semester.js";
+import { Batch } from "../models/Batch.js";
 
-const updateScore = async (req, res, next) => {
+const updateUniversityScore = async (req, res, next) => {
     try {
-        const { _id, scores } = req.body;
+        const { _id, batch_name, institution, department, course_name, semester_name, scoreData } = req.body;
+
+        // Find the existing exam
+        const existExam = await Exam.findOne({ _id: new ObjectId(_id) }).populate('scores');
+        if (!existExam) {
+            return res.status(404).json({ success: false, message: "Exam not found" });
+        }
+
+        // Find the existing score
+        const existScore = await Score.findOne({
+            stud_id: scoreData.stud_id,
+            registerNumber: scoreData.registerNumber,
+            sub_code: scoreData.sub_code
+        });
+
+        if (existScore) {
+            // Update the existing score
+            if (!scoreData.passingYear || existScore.passingYear === scoreData.passingYear) {
+                existScore.score = scoreData.score;
+            } else if (existScore.passingYear !== scoreData.passingYear) {
+                existScore.passingYear = scoreData.passingYear;
+            }
+            await existScore.save();
+        } else {
+            // Create a new score
+            const newScore = new Score(scoreData);
+            await newScore.save();
+            existExam.scores.push(newScore);
+            await existExam.save();
+        }
+
+        // Get all scores for the student for GPA calculation
+        const studentScores = await Score.find({ stud_id: scoreData.stud_id, examType: 'University' }).populate('sub_id');
+
+        // Get semester subjects and their credits
+        const semester = await Semester.findOne({ batch_name, semester_name, course_name }).populate('subjects');
+        const subjects = semester.subjects;
+
+        let totalCredits = 0;
+        let weightedSum = 0;
+        let arrears = [];
+
+        studentScores.forEach(score => {
+            const subject = subjects.find(sub => sub._id.equals(score.sub_id._id));
+            if (subject) {
+                const gradePoints = score.score; // Score is already from 0 to 10
+                totalCredits += subject.sub_credits;
+                weightedSum += gradePoints * subject.sub_credits;
+                if (gradePoints === 0) {
+                    arrears.push(subject._id);
+                }
+            }
+        });
+
+        const gpa = totalCredits > 0 ? (weightedSum / totalCredits).toFixed(2) : 0;
+
+        // Update the student's GPA and arrears for the specific semester
+        const student = await Student.findOne({ _id: scoreData.stud_id });
+        if (student) {
+            const semesterIndex = student.semesterStats.findIndex(stat => stat.semester_name === semester_name);
+            if (semesterIndex !== -1) {
+                student.semesterStats[semesterIndex].gpa = gpa;
+                student.semesterStats[semesterIndex].arrears = arrears;
+            } else {
+                student.semesterStats.push({ semester_name, gpa, arrears });
+            }
+
+            // Update history of arrears
+            arrears.forEach(arrear => {
+                if (!student.history_of_arrears.includes(arrear)) {
+                    student.history_of_arrears.push(arrear);
+                }
+            });
+
+            // Calculate CGPA
+            const totalGpaSum = student.semesterStats.reduce((sum, stat) => sum + parseFloat(stat.gpa), 0);
+            const totalSemesters = student.semesterStats.length;
+            student.cgpa = totalSemesters > 0 ? (totalGpaSum / totalSemesters).toFixed(2) : 0;
+
+            await student.save();
+        }
+
+        const existBatch = await Batch.findOne({   department, course_name, batch_name })
+        .populate({
+            path: 'students',
+            select: "registerNumber name cgpa history_of_arrears semesterStats current_arrears",
+        })
+        const students = existBatch.students;
+        return res.status(200).json({ success: true, message: "Scores updated successfully", students });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ success: false, message: "An error occurred while updating scores" });
+    }
+};
+
+const updateInternalScore = async (req, res, next) => {
+    try {
+        const { _id, scoreData } = req.body;
 
         const existExam = await Exam.findOne({ _id: new ObjectId(_id) }).populate('scores');
 
@@ -14,89 +113,8 @@ const updateScore = async (req, res, next) => {
             return res.status(404).json({ success: false, message: "Exam not found" });
         }
 
-        const promises = scores.map(async (scoreData) => {
-            const { stud_id, examType, sub_id, score, passingYear } = scoreData;
 
-            let existingScore = await Score.findOne({
-                stud_id: new ObjectId(stud_id),
-                examType,
-                sub_id: new ObjectId(sub_id)
-            });
-
-            if (existingScore) {
-                existingScore.score = score;
-                if (examType === 'University' && passingYear && existingScore.passingYear !== passingYear) {
-                    existingScore.passingYear = passingYear;
-                }
-                await existingScore.save();
-            } else {
-                const newScore = new Score({
-                    ...scoreData,
-                    stud_id: new ObjectId(stud_id),
-                    sub_id: new ObjectId(sub_id)
-                });
-                await newScore.save();
-                existExam.scores.push(newScore._id);
-                await existExam.save();
-            }
-
-            if (examType === 'University') {
-                const student = await Student.findById(stud_id).populate('semesterstats');
-
-                if (!student) {
-                    return res.status(404).json({ success: false, message: "Student not found" });
-                }
-
-                let semesterStat = student.semesterStats.find(stat => stat.semester.equals(existExam.semester));
-
-                if (!semesterStat) {
-                    // If semesterStat is not found, create a new one
-                    semesterStat = new SemesterStats({
-                        semester: existExam.semester,
-                        gpa: 0, // Initialize GPA or calculate based on your logic
-                        arrears: [], // Initialize arrears array
-                        subjects: [] // Initialize subjects array
-                    });
-                    student.semesterStats.push(semesterStat);
-                }
-
-                // Ensure semesterStat.subjects is initialized properly
-                if (!semesterStat.subjects) {
-                    semesterStat.subjects = [];
-                }
-
-                // Now you can safely access and manipulate semesterStat subjects
-                const currentSubjectIndex = semesterStat.subjects.findIndex(subject => subject.sub_id.equals(sub_id));
-                if (currentSubjectIndex >= 0) {
-                    semesterStat.subjects[currentSubjectIndex].score = score;
-                    if (passingYear && semesterStat.subjects[currentSubjectIndex].passingYear !== passingYear) {
-                        semesterStat.subjects[currentSubjectIndex].passingYear = passingYear;
-                    }
-                } else {
-                    semesterStat.subjects.push({ sub_id, score, passingYear });
-                }
-
-                // Update GPA for the semester
-                semesterStat.gpa = calculateGPA(semesterStat.subjects.map(subject => subject.score));
-
-                // Update current arrears
-                if (score < 50) {
-                    if (!semesterStat.arrears.includes(sub_id)) {
-                        semesterStat.arrears.push(sub_id);
-                    }
-                } else {
-                    semesterStat.arrears = semesterStat.arrears.filter(arrear => !arrear.equals(sub_id));
-                }
-
-                // Update CGPA for the student
-                student.cgpa = calculateCGPA(student.semesterStats);
-
-                // Save the updated student
-                await student.save();
-            }
-        });
-
-        await Promise.all(promises);
+        const existScore = await Score.findOne({stud_id: scoreData.stud_id, registerNumber: scoreData.stud_id, })
 
         return res.status(200).json({ success: true, message: "Scores updated successfully" });
     } catch (err) {
@@ -105,15 +123,4 @@ const updateScore = async (req, res, next) => {
     }
 };
 
-const calculateGPA = (scores) => {
-    if (scores.length === 0) return 0;
-    return scores.reduce((acc, score) => acc + score, 0) / scores.length;
-};
-
-const calculateCGPA = (semesterStats) => {
-    if (semesterStats.length === 0) return 0;
-    const totalGPA = semesterStats.reduce((acc, stat) => acc + stat.gpa, 0);
-    return totalGPA / semesterStats.length;
-};
-
-export { updateScore };
+export { updateUniversityScore };

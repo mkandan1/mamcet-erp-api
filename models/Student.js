@@ -60,21 +60,28 @@ const studentSchema = new mongoose.Schema({
     type: Number,
     default: 0.00,
   },
-  current_arrears: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "subjects",
-    default: [],
-  }],
   history_of_arrears: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: "subjects",
     default: [],
   }],
   semesterStats: [{
+    semester_name: {
+      type: mongoose.Schema.Types.String,
+      default: '',
+    },
+    gpa: {
+      type: Number,
+      default: 0.00,
+    },
+    arrears: [
+      {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "semesterStats",
-        default: []
-      }
+        ref: "subjects",
+        default: [],
+      },
+    ],
+  }
   ],
   address: {
     type: String,

@@ -1,7 +1,7 @@
 import express from 'express'
-import { updateScore } from '../controllers/score-controller.js';
+import { updateUniversityScore } from '../controllers/score-controller.js';
 const scoreRouter = express.Router();
 
-scoreRouter.route('/update').post(updateScore)
+scoreRouter.route('/university/update').post(updateUniversityScore)
 
 export { scoreRouter }
