@@ -24,7 +24,7 @@ const getExamData = async (req, res, next) => {
             })
             .populate({
                 path: 'exams',
-                match: { exam_name },
+                match: { exam_name, semester_name },
                 select: "exam_name institution program academic_year regulation department course_name batch_name semester_name start_date end_date scores",
                 populate: {
                     path: 'scores',

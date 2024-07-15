@@ -85,7 +85,7 @@ const updateUniversityScore = async (req, res, next) => {
             // Calculate CGPA
             const totalGpaSum = student.semesterStats.reduce((sum, stat) => sum + parseFloat(stat.gpa), 0);
             const totalSemesters = student.semesterStats.length;
-            student.cgpa = totalSemesters > 0 ? (totalGpaSum / totalSemesters).toFixed(2) : 0;
+            student.cgpa = totalSemesters > 0 ? (totalGpaSum / totalSemesters).toFixed(3) : 0;
 
             await student.save();
         }
@@ -105,7 +105,10 @@ const updateUniversityScore = async (req, res, next) => {
 
 const updateInternalScore = async (req, res, next) => {
     try {
-        const { _id, scoreData } = req.body;
+        const examData = req.body;
+        const { _id, scores } = examData;
+
+        console.log(scores)
 
         const existExam = await Exam.findOne({ _id: new ObjectId(_id) }).populate('scores');
 
@@ -113,14 +116,67 @@ const updateInternalScore = async (req, res, next) => {
             return res.status(404).json({ success: false, message: "Exam not found" });
         }
 
+        let changesMade = false;
 
-        const existScore = await Score.findOne({stud_id: scoreData.stud_id, registerNumber: scoreData.stud_id, })
+            const { registerNumber, sub_code, examType, score, name, stud_id, sub_id } = scores;
+            const numericScore = Number(score); // Convert the score to a number
+            let scoreUpdated = false;
 
-        return res.status(200).json({ success: true, message: "Scores updated successfully" });
+            for (let i = 0; i < existExam.scores.length; i++) {
+                const scoreId = existExam.scores[i];
+                const scoreDoc = await Score.findOne({ _id: scoreId });
+
+                if (
+                    scoreDoc.registerNumber === registerNumber &&
+                    scoreDoc.sub_code === sub_code &&
+                    scoreDoc.examType === examType
+                ) {
+                    if (scoreDoc.score !== numericScore) {
+                        scoreDoc.score = numericScore;
+                        await scoreDoc.save();
+                        scoreUpdated = true;
+                        changesMade = true;
+                    }
+                    break;
+                }
+            }
+
+            if (!scoreUpdated) {
+                // Check if the exact same score already exists
+                const existingScore = await Score.findOne({
+                    registerNumber,
+                    sub_code,
+                    examType,
+                    score: numericScore
+                });
+
+                if (!existingScore) {
+                    const newScore = new Score({
+                        examType: examType,
+                        stud_id: new ObjectId(stud_id),
+                        sub_id: new ObjectId(sub_id),
+                        name: name,
+                        registerNumber: registerNumber,
+                        sub_code: sub_code,
+                        score: numericScore
+                    });
+
+                    const savedScore = await newScore.save();
+                    existExam.scores.push(savedScore._id);
+                    changesMade = true;
+                }
+            }
+
+        if (changesMade) {
+            await existExam.save();
+            return res.status(200).json({ success: true, message: "Scores updated successfully", exam: existExam });
+        } else {
+            return res.status(200).json({ success: false, message: "Please enter new or update score", exam: existExam });
+        }
+
     } catch (err) {
-        console.error(err);
-        return res.status(500).json({ success: false, message: "An error occurred while updating scores" });
+        next(err);
     }
 };
 
-export { updateUniversityScore };
+export { updateUniversityScore, updateInternalScore };
