@@ -8,20 +8,29 @@ const addNewEmployee = async (req, res, next) => {
       email: employeeData.email,
     });
 
-    const hashedPassword = bcrypt.hashSync(employeeData.password, 10);
-    delete employeeData.password
-    employeeData.password = hashedPassword
-
     if (doesEmployeeExist) {
-      res
+      return res
         .status(409)
-        .json({ success: true, message: "Emplyee already exist with our record" });
+        .json({ success: false, message: "Employee already exists with our record" });
     }
-    await Employee.create(employeeData)
-    res.status(201).json({ success: true, message: "Emplyee has been added" });
+
+    const hashedPassword = bcrypt.hashSync(employeeData.password, 10);
+    employeeData.password = hashedPassword;
+
+    await Employee.create(employeeData);
+    res.status(201).json({ success: true, message: "Employee has been added" });
   } catch (err) {
     next(err);
   }
 };
 
-export { addNewEmployee };
+const getAllEmployees = async (req, res, next) => {
+  try {
+    const employees = await Employee.find();
+    res.status(200).json({ success: true, employees });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export { addNewEmployee, getAllEmployees };

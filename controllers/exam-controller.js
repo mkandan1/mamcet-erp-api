@@ -13,10 +13,17 @@ const getExamData = async (req, res, next) => {
                 path: 'semesters',
                 match: { semester_name },
                 select: 'institution program academic_year regulation department course_name batch_name semester_name subjects',
-                populate: {
-                    path: 'subjects',
-                    select: 'sub_name sub_code sub_short_name sub_type sub_credits'
-                }
+
+               populate: [
+                    {
+                        path: 'subjects.subjectId',
+                        select: 'sub_name sub_code sub_short_name sub_type sub_credits'
+                    },
+                    {
+                        path: 'subjects.facultyId',
+                        select: 'firstName lastName designation'
+                    }
+                ]
             })
             .populate({
                 path: 'students',
@@ -35,12 +42,12 @@ const getExamData = async (req, res, next) => {
         if (!existBatch) {
             return res.status(404).json({ success: false, message: "Batch does not exist!" });
         }
-        res.status(200).json({ success: true, message: "Exam data fetched successfully", existBatch })
+        res.status(200).json({ success: true, message: "Exam data fetched successfully", existBatch });
+    } catch (err) {
+        next(err);
     }
-    catch (err) {
-        next(err)
-    }
-}
+};
+
 
 const getAllSchedules = async (req, res, next) => {
     try {
