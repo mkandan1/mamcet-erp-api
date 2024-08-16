@@ -37,7 +37,7 @@ const login = async (req, res, next) => {
         secure: true,
       })
       .status(200)
-      .json({ success: true, message: "You have successfully logged in!" });
+      .json({ success: true, message: "You have successfully logged in!", user: doesUserExist });
   } catch (err) {
     next(err);
   }
