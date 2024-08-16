@@ -1,7 +1,8 @@
-import express from 'express'
-import cors from 'cors'
+import express from 'express';
+import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import bodyParser from 'body-parser';
+import http from 'http'
 import { error } from './middlewares/error-middleware.js';
 import { authRouter } from './routers/auth-router.js';
 import { employeeRouter } from './routers/employee-router.js';
@@ -16,21 +17,22 @@ import { semesterRouter } from './routers/semester-router.js';
 import { examRouter } from './routers/exam-router.js';
 import { scoreRouter } from './routers/score-router.js';
 
-const PORT = 3030;
 const app = express();
+const PORT = 3030;
 
-app.use(cors({ origin: process.env.CLIENT_URL, credentials: true }))
+app.use(cors({ origin: process.env.CLIENT_URL, credentials: true }));
 app.use(cookieParser());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 
-connect()
+connect();
 
 app.use((req, res, next) => {
     res.setHeader('Access-Control-Allow-Origin', process.env.CLIENT_URL);
     res.setHeader('Access-Control-Allow-Credentials', 'true');
     next();
-  });
+});
+
 app.use(error);
 app.use(checkAuthorization);
 app.use(decryptMiddleware);
@@ -47,4 +49,10 @@ app.use('/api/queries', queryRoute);
 
 app.use(error);
 
-app.listen(PORT, ()=> console.log(`Server listening at http://localhost:${PORT}`))
+const server = http.createServer(app);
+
+const startServer = () => {
+    server.listen(PORT, () => console.log(`Server listening at http://localhost:${PORT}`));
+};
+
+export { startServer };
