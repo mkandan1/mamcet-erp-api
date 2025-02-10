@@ -18,7 +18,7 @@ import { examRouter } from './routers/exam-router.js';
 import { scoreRouter } from './routers/score-router.js';
 
 const app = express();
-const PORT = 3030;
+const PORT = process.env.PORT || 3000;
 
 app.use(cors({ origin: process.env.CLIENT_URL, credentials: true }));
 app.use(cookieParser());
