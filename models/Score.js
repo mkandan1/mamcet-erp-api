@@ -4,6 +4,7 @@ const scoreSchema = new mongoose.Schema({
     examType: String,
     stud_id: {type: mongoose.Schema.Types.ObjectId, ref: 'students'},
     sub_id: {type: mongoose.Schema.Types.ObjectId, ref: 'subjects'},
+    exam_id: {type: mongoose.Schema.Types.ObjectId, ref: 'exams'},
     name: String,
     registerNumber: Number,
     sub_code: String,

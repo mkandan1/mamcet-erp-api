@@ -7,6 +7,59 @@ import { Semester } from "../models/Semester.js";
 import { Batch } from "../models/Batch.js";
 import WebSocket from 'ws';
 
+const getUniversityResult = async (req, res, next) => {
+  try {
+    const { regNo, dob } = req.query;
+
+    // Find student document
+    const studentDoc = await Student.findOne({ registerNumber: regNo, dob });
+    if (!studentDoc) {
+      return res.status(404).json({ success: false, message: "Invalid register number or date of birth" });
+    }
+
+
+    // Fetch batch document
+    const batchDoc = await Batch.findOne({ _id: new ObjectId(studentDoc.batch) });
+    if (!batchDoc) {
+      return res.status(404).json({ success: false, message: "Batch not found" });
+    }
+
+    
+    // Initialize result object
+    const studentResult = {
+      regNo: studentDoc.registerNumber,
+      name: studentDoc.name,
+      college: batchDoc.institution,
+      dob: studentDoc.dob,
+      exams: [],
+    };
+
+    // Iterate through exams in batch
+    for (let examId of batchDoc.exams) {
+      const examDoc = await Exam.findOne({ _id: new ObjectId(examId) });
+
+      if (examDoc && examDoc.exam_name === "University Exam") {
+        let examResult = { sem: examDoc.semester_name, subjects: {} };
+
+        // Fetch scores for this exam
+        const scoreDocs = await Score.find({ examType: "University", exam_id: examDoc._id, stud_id: studentDoc._id });
+
+        for (let scoreDoc of scoreDocs) {
+          examResult.subjects[scoreDoc.sub_code] = scoreDoc.score;
+        }
+
+        studentResult.exams.push(examResult);
+      }
+    }
+
+    return res.status(200).json({ success: true, data: studentResult });
+
+  } catch (e) {
+    console.error("Error fetching university result:", e);
+    return res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
 const updateUniversityScore = async (req, res, next) => {
   try {
     const { _id, scoreData } = req.body;
@@ -166,4 +219,4 @@ const updateInternalScore = async (req, res, next) => {
 };
 
 
-export { updateUniversityScore, updateInternalScore };
+export { updateUniversityScore, updateInternalScore, getUniversityResult };

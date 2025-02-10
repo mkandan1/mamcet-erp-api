@@ -65,6 +65,11 @@ const studentSchema = new mongoose.Schema({
     ref: "subjects",
     default: [],
   }],
+  
+  batch: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "batch"
+  },
   semesterStats: [{
     semester_name: {
       type: mongoose.Schema.Types.String,

@@ -148,7 +148,10 @@ const createBatch = async (req, res) => {
       result.map((student) => studentsObjectId.push(student._id));
       delete batchData.students;
       const newData = { ...batchData, students: studentsObjectId };
-      await Batch.create(newData);
+      const batchDoc = await Batch.create(newData);
+      for (let student of result){
+        await Student.findOneAndUpdate({_id: new ObjectId(student._id)}, { $set: {batch: batchDoc._id}});
+      }
       res
         .status(200)
         .json({ success: true, message: "Batch added successfully" });
