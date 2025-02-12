@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import bodyParser from 'body-parser';
-import http from 'http'
+import http from 'http';
 import { error } from './middlewares/error-middleware.js';
 import { authRouter } from './routers/auth-router.js';
 import { employeeRouter } from './routers/employee-router.js';
@@ -49,10 +49,11 @@ app.use('/api/queries', queryRoute);
 
 app.use(error);
 
-const server = http.createServer(app);
-
-const startServer = () => {
+// Create and start server only when running locally
+if (process.env.NODE_ENV !== 'production') {
+    const server = http.createServer(app);
     server.listen(PORT, () => console.log(`Server listening at http://localhost:${PORT}`));
-};
+}
 
-export { startServer };
+// ✅ Vercel requires a default export
+export default app;
