@@ -26,11 +26,11 @@
     "jsonwebtoken": "^9.0.2",
     "mongodb": "^6.6.2",
     "mongoose": "^8.3.5",
-    "nodemon": "^3.1.0",
     "os": "^0.1.2",
     "ws": "^8.18.0"
   },
   "devDependencies": {
-    "daisyui": "^4.11.1"
+    "daisyui": "^4.11.1",
+    "nodemon": "^3.1.9"
   }
 }
