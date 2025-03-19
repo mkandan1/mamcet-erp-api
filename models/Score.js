@@ -6,7 +6,7 @@ const scoreSchema = new mongoose.Schema({
     sub_id: {type: mongoose.Schema.Types.ObjectId, ref: 'subjects'},
     exam_id: {type: mongoose.Schema.Types.ObjectId, ref: 'exams'},
     name: String,
-    registerNumber: Number,
+    registerNumber: String,
     sub_code: String,
     passingYear: {type: String, default: null},
     score: Number
