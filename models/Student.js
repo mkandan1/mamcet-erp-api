@@ -2,7 +2,6 @@ import mongoose from "mongoose";
 
 const studentSchema = new mongoose.Schema({
   registerNumber: {
-    type: Number,
     required: true,
   },
   name: {
