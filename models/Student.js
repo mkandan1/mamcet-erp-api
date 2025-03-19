@@ -2,8 +2,11 @@ import mongoose from "mongoose";
 
 const studentSchema = new mongoose.Schema({
   registerNumber: {
-    required: true,
-  },
+  type: String,  // Store as string to handle both number and string formats
+  required: true,
+  unique: true, // Ensures no duplicate register numbers
+  trim: true,   // Removes unnecessary spaces
+},
   name: {
     type: String,
     required: true,
